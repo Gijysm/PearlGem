@@ -1,24 +1,26 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class Spawn_Main_Spheres : MonoBehaviour
 {
     [SerializeField] private GameObject spherePrefab;
-    [SerializeField] private GameObject TospherePrefab;
-    [SerializeField] private int trajectoryPoints = 30; 
+    [SerializeField] private GameObject targetSpherePrefab;
+    [SerializeField] private int trajectoryPoints = 30;
     [SerializeField] private float launchForce = 10f;
-    [SerializeField] private Transform launchPoint;
+    [SerializeField] private Camera launchPoint;
     [SerializeField] private LineRenderer lineRenderer;
-    private Color[] color_list = { Color.red, Color.green, Color.blue, Color.yellow };
-    [SerializeField] private int Count_spheres = 8;
-    
+    [SerializeField] private int countSpheres = 8;
+
+    private GameObject sphere;
     private Vector3 launchVelocity;
+    private Vector3 viewportPos;
+    private float holdTime;
     
-    void Start()
+    private static readonly Color[] ColorList = { Color.red, Color.green, Color.blue, Color.yellow };
+
+    private void Start()
     {
-        if (!lineRenderer)
+        if (lineRenderer == null)
         {
             lineRenderer = gameObject.AddComponent<LineRenderer>();
             lineRenderer.startWidth = 0.05f;
@@ -30,8 +32,7 @@ public class Spawn_Main_Spheres : MonoBehaviour
         }
     }
 
-    private double holdTime = 0;
-    void Update()
+    private void Update()
     {
         DrawTrajectory();
 
@@ -39,70 +40,96 @@ public class Spawn_Main_Spheres : MonoBehaviour
         {
             holdTime += Time.deltaTime;
         }
-        else if(holdTime >= 1)
+        else if (holdTime >= 1)
         {
             holdTime = 0;
         }
+
+        if (sphere != null)
+        {
+            viewportPos = launchPoint.WorldToViewportPoint(sphere.transform.position);
+            Vector3 screenPos = launchPoint.WorldToScreenPoint(sphere.transform.position);
+            Debug.Log($"ViewportPos: {viewportPos}, ScreenPos: {screenPos}");
+
+            if (!IsInViewport(viewportPos) || screenPos.y < -100)
+            {
+                Debug.Log("Видаляю сферу!");
+                Destroy(sphere);
+                sphere = null;
+            }
+        }
+
 
         if (holdTime < 1 && Input.GetMouseButtonUp(0))
         {
             SpawnSphere();
             holdTime = 0;
         }
-
     }
 
-    void SpawnSphere()
+    private void SpawnSphere()
     {
-        if (Count_spheres > 0){ 
-        GameObject sphere = Instantiate(spherePrefab,
-        new Vector3(launchPoint.position.x, launchPoint.position.y, launchPoint.position.z),
-        Quaternion.identity);
-        Shader shader = sphere.GetComponent<Renderer>().sharedMaterial.shader;
-        Material material = new Material(shader);
-        Main_Sphere main_sphere = sphere.GetComponent<Main_Sphere>();
-        int random = Random.Range(0, 4);
-        material.SetColor("_BaseColor", color_list[random]);
-        sphere.GetComponent<Renderer>().material = material;
-        main_sphere.SetColor(material);
-        Rigidbody rb = sphere.GetComponent<Rigidbody>();
+        if (countSpheres <= 0) return;
+
+        Vector3 spawnPosition = launchPoint.transform.position + launchPoint.transform.forward * 2f;
+        sphere = Instantiate(spherePrefab, spawnPosition, Quaternion.identity);
+
+        Debug.Log($"Сфера спавнена на позиции: {spawnPosition}");
+
+        var renderer = sphere.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            var material = new Material(renderer.sharedMaterial.shader);
+            int randomIndex = Random.Range(0, ColorList.Length);
+            material.SetColor("_BaseColor", ColorList[randomIndex]);
+            renderer.material = material;
+
+            var mainSphere = sphere.GetComponent<Main_Sphere>();
+            mainSphere?.SetColor(material);
+        }
+
+        var rb = sphere.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.velocity = launchVelocity;
+            Debug.Log($"Сфера получила начальную скорость: {launchVelocity}");
         }
 
-        Count_spheres--;
-        }
-}
+        countSpheres--;
+    }
 
-    void DrawTrajectory()
+    private void DrawTrajectory()
     {
-        launchVelocity = (transform.forward * launchForce) + (Vector3.up * (launchForce / 2) * (float)holdTime);
+        launchVelocity = transform.forward * launchForce + Vector3.up * (launchForce / 2) * holdTime;
 
         Vector3[] trajectoryPositions = new Vector3[trajectoryPoints];
-
-        Vector3 startPosition = launchPoint.position;
+        Vector3 startPosition = launchPoint.transform.position;
         Vector3 currentVelocity = launchVelocity;
-        Vector3 endPoint = TospherePrefab.transform.position;
+        Vector3 hitPosition = targetSpherePrefab.transform.position;
         bool reachedTarget = false;
-        Vector3 hitPosition = TospherePrefab.transform.position;
-        
+
         for (int i = 0; i < trajectoryPoints; i++)
         {
             float time = i * 0.1f;
-            Vector3 newPosition = startPosition + (currentVelocity * time) + (0.5f * Physics.gravity * time * time);
-
+            Vector3 newPosition = startPosition + currentVelocity * time + 0.5f * Physics.gravity * time * time;
             trajectoryPositions[i] = newPosition;
-            
-            if (!reachedTarget && Physics.Raycast(trajectoryPositions[Mathf.Max(0, i - 1)], newPosition - trajectoryPositions[Mathf.Max(0, i - 1)], out RaycastHit hit, Vector3.Distance(trajectoryPositions[Mathf.Max(0, i - 1)], newPosition)))
+
+            if (!reachedTarget && i > 0 && Physics.Raycast(trajectoryPositions[i - 1], newPosition - trajectoryPositions[i - 1], out RaycastHit hit, Vector3.Distance(trajectoryPositions[i - 1], newPosition)))
             {
-                hitPosition = hit.point; 
+                hitPosition = hit.point;
                 reachedTarget = true;
-                break; 
+                break;
             }
         }
 
         lineRenderer.positionCount = reachedTarget ? trajectoryPositions.Length : trajectoryPoints;
         lineRenderer.SetPositions(trajectoryPositions);
+    }
+
+    private bool IsInViewport(Vector3 position)
+    {
+        return position.x >= 0 && position.x <= 1 &&
+               position.y >= 0 && position.y <= 1 &&
+               position.z > 0;
     }
 }

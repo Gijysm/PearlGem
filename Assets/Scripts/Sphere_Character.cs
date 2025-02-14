@@ -49,11 +49,12 @@ public class Sphere_Character : MonoBehaviour
 
                 string thisColor = ColorUtility.ToHtmlStringRGBA(sphereColor);
                 string otherColor = ColorUtility.ToHtmlStringRGBA(otherSphere.GetMainSphereColor());
-                ParticleSystem particle = Instantiate(particlePrefab);
+                ParticleSystem particle = Instantiate(particlePrefab, this.transform, false);
                 particle.Play();
                 if (thisColor == otherColor)
                 {
                     Destroy(gameObject);
+                    Destroy(particle);
                 }
             }
         }

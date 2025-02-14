@@ -228,7 +228,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 11325562}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.18201482, y: 0.7702522, z: 0.69}
+  m_LocalPosition: {x: 0, y: 0, z: 10}
   m_LocalScale: {x: 8, y: 8, z: 8}
   m_Children: []
   m_Father: {fileID: 0}
@@ -418,7 +418,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -471,9 +471,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spherePrefab: {fileID: 5383782930148718429, guid: 83bde6be87be714458734d665ba5dfe6,
     type: 3}
-  TospherePrefab: {fileID: 11325562}
+  targetSpherePrefab: {fileID: 11325562}
   trajectoryPoints: 30
   launchForce: 10
-  launchPoint: {fileID: 963194228}
+  launchPoint: {fileID: 963194227}
   lineRenderer: {fileID: 0}
-  Count_spheres: 42
+  countSpheres: 8
